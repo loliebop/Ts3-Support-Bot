@@ -91,7 +91,6 @@ func getUserByGroup(client *ts3.Client, gid int) {
 
 		for _, group := range groups {
 			if group != gid {
-				fmt.Println(group, gid)
 				continue
 			}
 
@@ -199,7 +198,7 @@ func moveEvent(client *ts3.Client, data map[string]string) {
 		msg := fmt.Sprintf("Hi %v!\nWillkommen im Support Warteraum! Benutze ein der folgenden Befehle für dein Support Ticket:\n", getNameFromUID(client, clID))
 		sendMsg(client, clID, msg)
 
-		for teamNames, _ := range cfg.Teams {
+		for teamNames := range cfg.Teams {
 			sendMsg(client, clID, "!"+teamNames)
 		}
 
@@ -245,10 +244,6 @@ func eventHandler(client *ts3.Client) {
 		switch notification.Type {
 		case "clientmoved":
 			moveEvent(client, notification.Data)
-		case "clientleftview":
-			fmt.Println("disconnected")
-		case "cliententerview":
-			fmt.Println("cliententerview")
 		case "textmessage":
 			textEvent(client, notification.Data)
 		}
