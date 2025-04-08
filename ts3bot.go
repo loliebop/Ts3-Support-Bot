@@ -122,6 +122,7 @@ func createChannel(client *ts3.Client, invokerName string, invokerID string, tea
 	cmd := ts3.NewCmd("channelcreate").WithArgs(
 		ts3.NewArg("channel_name", channelName),
 		ts3.NewArg("cpid", 3),
+		ts3.NewArg("channel_flag_maxclients_unlimited", 0),
 	).WithResponse(&i)
 
 	if _, err := client.ExecCmd(cmd); err != nil {
