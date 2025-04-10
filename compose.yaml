@@ -1,0 +1,4 @@
+services:
+  ts3bot:
+    build: .
+    env_file: '.env'

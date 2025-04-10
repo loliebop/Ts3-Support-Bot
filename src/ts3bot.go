@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"log/slog"
 	"os"
@@ -13,14 +12,8 @@ import (
 	"github.com/multiplay/go-ts3"
 )
 
-/*
-	Chat:
-	- TESTME: PingtTeamler (wenn online (multible clients))
-
-*/
-
 type Config struct {
-	QueryIP  string `json:"serverip"`
+	QueryIP  string
 	User     string
 	Password string
 
@@ -136,21 +129,23 @@ func createChannel(client *ts3.Client, invokerName string, invokerID string, tea
 func LoadConfig() {
 	var config Config
 
-	file, err := os.Open("config.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
+	config.QueryIP = os.Getenv("TS3ServerIP")
+	config.User = os.Getenv("TS3User")
+	config.Password = os.Getenv("TS3Password")
 
-	f, err := io.ReadAll(file)
+	serverid, err := strconv.Atoi(os.Getenv("TS3ServerID"))
+
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("serverid not valid", "Error:", err)
 	}
 
-	err = json.Unmarshal(f, &config)
-	if err != nil {
-		log.Fatal(err)
-	}
+	config.ServerID = serverid
+	config.SupportChannel = os.Getenv("TS3SupportChannel")
+	config.TS3DefaultChannel = os.Getenv("TS3DefaultChannel")
+
+	teams := []byte(os.Getenv("TS3Teams"))
+
+	json.Unmarshal(teams, &config.Teams)
 
 	cfg = config
 }
@@ -196,14 +191,13 @@ func moveEvent(client *ts3.Client, data map[string]string) {
 	ctID := data["ctid"]
 
 	if ctID == cfg.SupportChannel {
-		msg := fmt.Sprintf("Hi %v!\nWillkommen im Support Warteraum! Benutze ein der folgenden Befehle für dein Support Ticket:\n", getNameFromUID(client, clID))
-		sendMsg(client, clID, msg)
+		msg := fmt.Sprintf("Hi %v!\nWillkommen im Support Warteraum! Benutze ein der folgenden Befehle für dein Support Ticket:", getNameFromUID(client, clID))
 
 		for teamNames := range cfg.Teams {
-			sendMsg(client, clID, "!"+teamNames)
+			msg += "\n!" + teamNames
 		}
 
-		return
+		sendMsg(client, clID, msg)
 	}
 }
 
