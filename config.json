@@ -1,0 +1,15 @@
+{
+    "serverip": "localhost:10011",
+    "User": "serveradmin",
+    "Password": "",
+    
+    "ServerID": 1,
+    "SupportChannel": "3",
+    "TS3DefaultChannel": "1",
+
+    "Teams": {
+        "scp": [9,7],
+        "ts3": [11],
+        "forum": [10]
+    }
+}

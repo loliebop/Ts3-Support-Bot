@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"os"
@@ -13,7 +14,7 @@ import (
 )
 
 type Config struct {
-	QueryIP  string
+	QueryIP  string `json:"serverip"`
 	User     string
 	Password string
 
@@ -21,7 +22,7 @@ type Config struct {
 	SupportChannel    string
 	TS3DefaultChannel string
 
-	Teams map[string]int
+	Teams map[string][]int
 }
 
 var cfg Config
@@ -48,6 +49,18 @@ func getNameFromUID(client *ts3.Client, clid string) string {
 	return res.Name
 }
 
+func isTeam(groups []int, team []int) bool {
+	for _, teamgroup := range team {
+		for _, clientgroup := range groups {
+			if teamgroup == clientgroup {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func sendMsg(client *ts3.Client, clid string, msg string) {
 	cmd := ts3.NewCmd("sendtextmessage")
 	cmd.WithArgs(
@@ -72,23 +85,22 @@ func sendMsgInt(client *ts3.Client, clid int, msg string) {
 	}
 }
 
-func getUserByGroup(client *ts3.Client, gid int) {
+func msgByTeam(client *ts3.Client, from string, team string) {
 	cl, err := client.Server.ClientList("-groups")
 	if err != nil {
-		slog.Error("getUserByGroup Error", "error", err)
+		slog.Error("msgByTeam Error", "error", err)
 		return
 	}
 
 	for _, user := range cl {
 		groups := *user.ServerGroups
 
-		for _, group := range groups {
-			if group != gid {
-				continue
-			}
-
-			sendMsgInt(client, user.ID, "Es wurde ein Ticket erstellt!")
+		if !isTeam(groups, cfg.Teams[team]) {
+			continue
 		}
+
+		sendMsgInt(client, user.ID, fmt.Sprintf("%s hat ein Ticket für %s erstellt!", from, team))
+		continue
 	}
 }
 
@@ -104,7 +116,7 @@ func moveUser(client *ts3.Client, userid string, cid string) {
 	}
 }
 
-func createChannel(client *ts3.Client, invokerName string, invokerID string, team string) {
+func createChannel(client *ts3.Client, invokerName string, invokerID string, team string) bool {
 	channelName := strings.ToUpper(team) + " | \u200b" + invokerName
 
 	type channelCreateRespone struct {
@@ -114,38 +126,38 @@ func createChannel(client *ts3.Client, invokerName string, invokerID string, tea
 
 	cmd := ts3.NewCmd("channelcreate").WithArgs(
 		ts3.NewArg("channel_name", channelName),
-		ts3.NewArg("cpid", 3),
+		ts3.NewArg("cpid", cfg.SupportChannel),
 		ts3.NewArg("channel_flag_maxclients_unlimited", 0),
 	).WithResponse(&i)
 
 	if _, err := client.ExecCmd(cmd); err != nil {
 		slog.Error("", "err", err)
+		return false
 	}
 
 	moveUser(client, invokerID, i.ChannelID)
 	moveUser(client, BotID, cfg.TS3DefaultChannel)
+	return true
 }
 
 func LoadConfig() {
 	var config Config
 
-	config.QueryIP = os.Getenv("TS3ServerIP")
-	config.User = os.Getenv("TS3User")
-	config.Password = os.Getenv("TS3Password")
-
-	serverid, err := strconv.Atoi(os.Getenv("TS3ServerID"))
-
+	file, err := os.Open("config.json")
 	if err != nil {
-		log.Fatal("serverid not valid", "Error:", err)
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	f, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	config.ServerID = serverid
-	config.SupportChannel = os.Getenv("TS3SupportChannel")
-	config.TS3DefaultChannel = os.Getenv("TS3DefaultChannel")
-
-	teams := []byte(os.Getenv("TS3Teams"))
-
-	json.Unmarshal(teams, &config.Teams)
+	err = json.Unmarshal(f, &config)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	cfg = config
 }
@@ -217,13 +229,15 @@ func textEvent(client *ts3.Client, data map[string]string) {
 		return
 	}
 
-	teamID, exist := cfg.Teams[msg[1:]]
+	teamname := msg[1:]
+	_, exist := cfg.Teams[teamname]
 	if !exist {
 		return
 	}
 
-	createChannel(client, invokerName, invokerID, msg[1:])
-	getUserByGroup(client, teamID)
+	if channelcreated := createChannel(client, invokerName, invokerID, teamname); channelcreated {
+		msgByTeam(client, invokerName, teamname)
+	}
 }
 
 func eventHandler(client *ts3.Client) {
