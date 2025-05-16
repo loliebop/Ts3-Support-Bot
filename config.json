@@ -13,7 +13,7 @@
         "forum": [10]
     },
 
-    "Language": {
+    "Messages": {
         "ticketCreated": "%s created a Ticket for %s!",
         "channelJoinMessage": "Hi %v!\nWelcome to the support waiting room! Use one of the following commands to create a ticket:"
     }

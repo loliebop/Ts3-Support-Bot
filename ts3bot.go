@@ -23,7 +23,7 @@ type Config struct {
 	TS3DefaultChannel string
 
 	Teams    map[string][]int
-	Language map[string]string
+	Messages map[string]string
 }
 
 var cfg Config
@@ -100,7 +100,7 @@ func msgByTeam(client *ts3.Client, from string, team string) {
 			continue
 		}
 
-		sendMsgInt(client, user.ID, fmt.Sprintf(cfg.Language["ticketCreated"], from, team))
+		sendMsgInt(client, user.ID, fmt.Sprintf(cfg.Messages["ticketCreated"], from, team))
 		continue
 	}
 }
@@ -166,8 +166,6 @@ func LoadConfig() {
 func main() {
 	LoadConfig()
 
-	fmt.Println(cfg.Language)
-
 	c, err := ts3.NewClient(cfg.QueryIP)
 	if err != nil {
 		log.Fatal(err)
@@ -206,7 +204,7 @@ func moveEvent(client *ts3.Client, data map[string]string) {
 	ctID := data["ctid"]
 
 	if ctID == cfg.SupportChannel {
-		msg := fmt.Sprintf(cfg.Language["channelJoinMessage"], getNameFromUID(client, clID))
+		msg := fmt.Sprintf(cfg.Messages["channelJoinMessage"], getNameFromUID(client, clID))
 
 		for teamNames := range cfg.Teams {
 			msg += "\n!" + teamNames
