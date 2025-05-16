@@ -11,5 +11,10 @@
         "scp": [9,7],
         "ts3": [11],
         "forum": [10]
+    },
+
+    "Language": {
+        "ticketCreated": "%s created a Ticket for %s!",
+        "channelJoinMessage": "Hi %v!\nWelcome to the support waiting room! Use one of the following commands to create a ticket:"
     }
 }
